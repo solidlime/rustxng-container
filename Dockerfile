@@ -18,7 +18,7 @@ RUN set -eux; \
     curl -fsSL "$base/$asset.sha256" -o "/tmp/$asset.sha256"; \
     expected=$(cut -d' ' -f1 "/tmp/$asset.sha256"); \
     test -n "$expected"; \
-    printf '%s  %s\n' "$expected" "/tmp/$asset" | sha256sum -c --strict -; \
+    printf '%s  %s\n' "$expected" "/tmp/$asset" | sha256sum -c -; \
     install -m 0755 "/tmp/$asset" /usr/local/bin/rustxng; \
     rm -f "/tmp/$asset" "/tmp/$asset.sha256"; \
     curl -fsSL "$raw/settings.toml" -o /etc/rustxng-settings.toml; \
