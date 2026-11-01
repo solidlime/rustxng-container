@@ -34,6 +34,15 @@ jobs:
           test -n "$tag" -a "$tag" != "null"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
+      - name: Compute the image revision
+        id: rev
+        run: |
+          set -euo pipefail
+          # イメージの中身は Dockerfile と entrypoint.sh だけで決まる。この2つの
+          # ハッシュをタグに混ぜるので、上流が同じでも自分の変更は再ビルドされる。
+          sha=$(cat Dockerfile entrypoint.sh | sha256sum | cut -c1-12)
+          echo "tag=${{ steps.upstream.outputs.tag }}-$sha" >> "$GITHUB_OUTPUT"
+
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -43,7 +52,7 @@ jobs:
       - name: Is this version already published?
         id: check
         env:
-          TAG: ${{ steps.upstream.outputs.tag }}
+          TAG: ${{ steps.rev.outputs.tag }}
         run: |
           set -euo pipefail
           repo=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
@@ -75,10 +84,11 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:${{ steps.upstream.outputs.tag }}
+            ghcr.io/${{ github.repository }}:${{ steps.rev.outputs.tag }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.version=${{ steps.upstream.outputs.tag }}
             org.opencontainers.image.licenses=AGPL-3.0-or-later
 
       - name: Summary
-        run: echo "${{ steps.upstream.outputs.tag }} exists=${{ steps.check.outputs.exists }}" >> "$GITHUB_STEP_SUMMARY"
+        run: echo "upstream=${{ steps.upstream.outputs.tag }} revision=${{ steps.rev.outputs.tag }} exists=${{ steps.check.outputs.exists }}" >> "$GITHUB_STEP_SUMMARY"
