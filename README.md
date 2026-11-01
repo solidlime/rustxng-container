@@ -4,8 +4,10 @@ Container image for [sahenjp/RustXNG](https://github.com/sahenjp/RustXNG), built
 NAS can follow upstream releases automatically.
 
 - `publish.yml` runs daily, reads the newest upstream release tag, and pushes
-  `ghcr.io/solidlime/rustxng-container:{latest,vX.Y.Z}` **only when that tag is not published yet**.
-  An unchanged upstream tag means an unchanged image digest, so watchtower stays quiet.
+  `ghcr.io/solidlime/rustxng-container:{latest,vX.Y.Z,vX.Y.Z-<recipe-sha>}` **only when that
+  tag is not published yet**. The recipe sha covers `Dockerfile` + `entrypoint.sh`, so fixing
+  the image itself rebuilds it without waiting for an upstream release; an unchanged recipe
+  and upstream tag mean an unchanged digest, which keeps watchtower quiet.
 - The image downloads the upstream statically linked musl binary and verifies the
   published `sha256`. There is no Rust toolchain and no build on the NAS.
 - `entrypoint.sh` seeds `/data/settings.toml` on first start (random `secret_key`,
@@ -48,8 +50,8 @@ RustXNG warns and starts normally when the index is missing or empty.
   `/volume1/docker/rustxng` のバックアップを取ること。
 - `/data/settings.toml` は初回起動時のみ生成される。以後イメージを更新しても上書きされない。
   `secret_key` を失うとセッション類は無効になる。
-- watchtower が 300 秒間隔でこのイメージの digest を見ており、upstream の新リリースが
-  publish された時だけ再作成される。
+- 更新の反映は watchtower 任せ。既定の巡回は **24 時間に 1 回**（この NAS では毎日 06:21 JST
+  前後）なので、publish 直後には反映されない。すぐ反映したい時は上の「手で更新する」を実行する。
 
 ## License
 
