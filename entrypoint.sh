@@ -22,6 +22,17 @@ if [ ! -s "$SETTINGS" ]; then
   fi
   # 自前 BM25 索引を使う（空のままでも警告だけで起動する）
   sed -i 's|^local_index_path = ""|local_index_path = "/data/index-data"|' "$tmp"
+  # 上流が表記を変えると sed も grep も静かに外れる。索引が別の場所へ落ちると
+  # 再生成できないデータを失うので、ここで止める。
+  if ! grep -qxF 'local_index_path = "/data/index-data"' "$tmp"; then
+    echo "entrypoint: local_index_path is not /data/index-data (upstream settings.toml changed) -- refusing to start" >&2
+    exit 1
+  fi
+  keys=$(grep -c '^secret_key' "$tmp" || true)
+  if [ "$keys" -ne 1 ]; then
+    echo "entrypoint: expected 1 secret_key in the seeded settings, found $keys -- refusing to start" >&2
+    exit 1
+  fi
   chown rustxng:rustxng "$tmp"
   mv "$tmp" "$SETTINGS"
   echo "entrypoint: seeded $SETTINGS with a fresh secret_key"

@@ -24,11 +24,28 @@ Or paste `compose.yml` into a Portainer stack. Open `http://nas:8888/`.
 
 ## Updating
 
-watchtower picks up new digests by itself. To force it by hand:
+watchtower picks up new digests by itself. The container actually runs from a
+**Portainer stack** (stack_id 72, `/data/compose/72/docker-compose.yml`), so the
+`compose.yml` in this repo is not the file on the NAS - `docker compose -f compose.yml up -d`
+does nothing there. To force an update by hand, pull and recreate:
 
 ```bash
-docker compose pull && docker compose up -d
+docker pull ghcr.io/solidlime/rustxng-container:latest
 ```
+
+then in Portainer: **Stacks -> rustxng -> Update the stack** (with *re-pull image*).
+
+## Rolling back
+
+Note the running image id before updating, so the old one stays addressable:
+
+```bash
+docker ps --filter name=rustxng --format '{{.Image}}'
+docker tag <current image id> rustxng:pre-update
+```
+
+If the new image misbehaves, point the stack's image at `rustxng:pre-update` and recreate it
+in Portainer. `/data` is a bind mount, so settings and the index survive the swap.
 
 ## Local index (optional)
 

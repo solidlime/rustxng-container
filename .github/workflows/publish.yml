@@ -30,7 +30,7 @@ jobs:
         id: upstream
         run: |
           set -euo pipefail
-          tag=$(curl -fsSL https://api.github.com/repos/sahenjp/RustXNG/releases/latest | jq -r .tag_name)
+          tag=$(curl -fsSL --max-time 20 https://api.github.com/repos/sahenjp/RustXNG/releases/latest | jq -r .tag_name)
           test -n "$tag" -a "$tag" != "null"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
@@ -60,10 +60,13 @@ jobs:
           # An anonymous pull token works while the package is public -- if this
           # package ever goes private, swap this for the /token exchange with
           # the GitHub App/PAT credentials instead.
-          tok=$(curl -fsS "https://ghcr.io/token?scope=repository:$repo:pull&service=ghcr.io" | jq -r .token)
-          code=$(curl -s -o /dev/null -w '%{http_code}' \
+          tok=$(curl -fsS --max-time 20 "https://ghcr.io/token?scope=repository:$repo:pull&service=ghcr.io" | jq -r .token)
+          # buildx pushes an OCI index today, but a single-arch build with
+          # provenance disabled would be a bare manifest -- ask for both, or the
+          # check would 404 and rebuild the image every day.
+          code=$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' \
             -H "Authorization: Bearer $tok" \
-            -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json' \
+            -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json' \
             "https://ghcr.io/v2/$repo/manifests/$TAG")
           echo "manifest status: $code"
           case "$code" in
@@ -72,8 +75,8 @@ jobs:
             *) echo "::error::unexpected GHCR status $code -- refusing to guess"; exit 1 ;;
           esac
 
+      # also needed by the re-point step below (imagetools)
       - uses: docker/setup-buildx-action@v3
-        if: steps.check.outputs.exists == 'false'
 
       - uses: docker/build-push-action@v6
         if: steps.check.outputs.exists == 'false'
@@ -89,6 +92,23 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.version=${{ steps.upstream.outputs.tag }}
             org.opencontainers.image.licenses=AGPL-3.0-or-later
+
+      # A revert makes the recipe sha match an image that is already published,
+      # so nothing is built -- but latest/vX.Y.Z would keep pointing at the newer
+      # image. Copy the manifest from the revision tag to move them back; a copy
+      # keeps the digest, so watchtower stays quiet until a real rebuild.
+      - name: Re-point the moving tags to the existing revision
+        if: steps.check.outputs.exists == 'true'
+        env:
+          UPSTREAM_TAG: ${{ steps.upstream.outputs.tag }}
+          REV_TAG: ${{ steps.rev.outputs.tag }}
+        run: |
+          set -euo pipefail
+          img="ghcr.io/$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          docker buildx imagetools create \
+            -t "$img:latest" \
+            -t "$img:$UPSTREAM_TAG" \
+            "$img:$REV_TAG"
 
       - name: Summary
         run: echo "upstream=${{ steps.upstream.outputs.tag }} revision=${{ steps.rev.outputs.tag }} exists=${{ steps.check.outputs.exists }}" >> "$GITHUB_STEP_SUMMARY"
