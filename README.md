@@ -4,7 +4,7 @@ Container image for [sahenjp/RustXNG](https://github.com/sahenjp/RustXNG), built
 NAS can follow upstream releases automatically.
 
 - `publish.yml` runs daily, reads the newest upstream release tag, and pushes
-  `ghcr.io/solidlime/rustxng:{latest,vX.Y.Z}` **only when that tag is not published yet**.
+  `ghcr.io/solidlime/rustxng-container:{latest,vX.Y.Z}` **only when that tag is not published yet**.
   An unchanged upstream tag means an unchanged image digest, so watchtower stays quiet.
 - The image downloads the upstream statically linked musl binary and verifies the
   published `sha256`. There is no Rust toolchain and no build on the NAS.

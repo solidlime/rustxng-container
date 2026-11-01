@@ -1,7 +1,7 @@
 # NAS (Portainer stack) definition.
 services:
   rustxng:
-    image: ghcr.io/solidlime/rustxng:latest
+    image: ghcr.io/solidlime/rustxng-container:latest
     container_name: rustxng
     restart: unless-stopped
     ports:
