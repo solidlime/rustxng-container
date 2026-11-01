@@ -16,13 +16,15 @@ RUN set -eux; \
     asset="rustxng-${RUSTXNG_VERSION}-x86_64-unknown-linux-musl"; \
     curl -fsSL "$base/$asset" -o "/tmp/$asset"; \
     curl -fsSL "$base/$asset.sha256" -o "/tmp/$asset.sha256"; \
-    (cd /tmp && sha256sum -c "$asset.sha256"); \
+    expected=$(cut -d' ' -f1 "/tmp/$asset.sha256"); \
+    test -n "$expected"; \
+    printf '%s  %s\n' "$expected" "/tmp/$asset" | sha256sum -c --strict -; \
     install -m 0755 "/tmp/$asset" /usr/local/bin/rustxng; \
     rm -f "/tmp/$asset" "/tmp/$asset.sha256"; \
     curl -fsSL "$raw/settings.toml" -o /etc/rustxng-settings.toml; \
     mkdir -p /usr/share/licenses/rustxng; \
     curl -fsSL "$raw/LICENSE" -o /usr/share/licenses/rustxng/LICENSE; \
-    curl -fsSL "$raw/NOTICE" -o /usr/share/licenses/rustxng/NOTICE; \
+    curl -fsSL "$raw/NOTICE" -o /usr/share/licenses/rustxng/NOTICE || true; \
     apk del curl; \
     addgroup -g 10001 rustxng; \
     adduser -u 10001 -G rustxng -D -H rustxng

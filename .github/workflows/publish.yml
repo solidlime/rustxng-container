@@ -42,12 +42,21 @@ jobs:
 
       - name: Is this version already published?
         id: check
+        env:
+          TAG: ${{ steps.upstream.outputs.tag }}
         run: |
-          if docker manifest inspect "ghcr.io/${{ github.repository }}:${{ steps.upstream.outputs.tag }}" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
+          set -euo pipefail
+          repo=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json' \
+            "https://ghcr.io/v2/$repo/manifests/$TAG")
+          echo "manifest status: $code"
+          case "$code" in
+            200) echo "exists=true" >> "$GITHUB_OUTPUT" ;;
+            404) echo "exists=false" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::unexpected GHCR status $code -- refusing to guess"; exit 1 ;;
+          esac
 
       - uses: docker/setup-buildx-action@v3
         if: steps.check.outputs.exists == 'false'

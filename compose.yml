@@ -11,12 +11,13 @@ services:
       - /volume1/docker/rustxng:/data
     environment:
       TZ: Asia/Tokyo
+      RUSTXNG_PORT: "8888"
     labels:
       # The running watchtower has no --label-enable flag, so it watches every
       # container anyway; the label keeps it working if that ever changes.
       com.centurylinklabs.watchtower.enable: "true"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8888/healthz >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8888/healthz || exit 1"]
       interval: 60s
       timeout: 5s
       retries: 3

@@ -41,6 +41,16 @@ rustxng-index crawl --seeds seeds.txt --out /volume1/docker/rustxng/index-data -
 
 RustXNG warns and starts normally when the index is missing or empty.
 
+## 運用上の注意
+
+- `/data/index-data/` は NAS 上では再生成できない。ローカル索引を作る `rustxng-index` は
+  release asset に含まれておらず、イメージ内にも無い。消えたら索引は失われるので
+  `/volume1/docker/rustxng` のバックアップを取ること。
+- `/data/settings.toml` は初回起動時のみ生成される。以後イメージを更新しても上書きされない。
+  `secret_key` を失うとセッション類は無効になる。
+- watchtower が 300 秒間隔でこのイメージの digest を見ており、upstream の新リリースが
+  publish された時だけ再作成される。
+
 ## License
 
 Upstream is AGPL-3.0-or-later; `LICENSE` and `NOTICE` are shipped inside the image
