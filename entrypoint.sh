@@ -42,5 +42,3 @@ chown rustxng:rustxng "$SETTINGS"
 chown -R rustxng:rustxng "$DATA_DIR/index-data"
 
 exec su-exec rustxng:rustxng rustxng --bind 0.0.0.0 --port "$PORT"
-
-# revert-probe
