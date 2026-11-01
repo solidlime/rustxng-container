@@ -13,14 +13,17 @@ NAS can follow upstream releases automatically.
 - `entrypoint.sh` seeds `/data/settings.toml` on first start (random `secret_key`,
   local BM25 index at `/data/index-data`), then runs rustxng as uid 10001.
 
-## Run on the NAS
+## First-time setup
 
-```bash
-mkdir -p /volume1/docker/rustxng
-docker compose -f compose.yml up -d
-```
+On a host with no existing stack, paste `compose.yml` into a Portainer stack
+(the one on this NAS is stack_id 72) and start it. Create the bind mount source
+first: `mkdir -p /volume1/docker/rustxng`.
 
-Or paste `compose.yml` into a Portainer stack. Open `http://nas:8888/`.
+Do **not** additionally run the compose file by hand where a stack already runs:
+`container_name: rustxng` and the `8888:8888` binding would collide with it and
+mount `/data` twice.
+
+Open `http://nas:8888/`.
 
 ## Updating
 
@@ -33,7 +36,8 @@ does nothing there. To force an update by hand, pull and recreate:
 docker pull ghcr.io/solidlime/rustxng-container:latest
 ```
 
-then in Portainer: **Stacks -> rustxng -> Update the stack** (with *re-pull image*).
+then in Portainer: **Stacks -> rustxng -> Update the stack**, with *re-pull image*
+**on** for a forward update and **off** when rolling back to `rustxng:pre-update`.
 
 ## Rolling back
 
