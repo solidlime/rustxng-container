@@ -24,6 +24,7 @@ if [ ! -s "$SETTINGS" ]; then
   sed -i 's|^local_index_path = ""|local_index_path = "/data/index-data"|' "$tmp"
   chown rustxng:rustxng "$tmp"
   mv "$tmp" "$SETTINGS"
+  echo "entrypoint: seeded $SETTINGS with a fresh secret_key"
 fi
 
 chown rustxng:rustxng "$SETTINGS"
